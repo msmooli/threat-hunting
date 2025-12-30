@@ -940,12 +940,11 @@ After identifying attacker interaction with sensitive data in the user’s Docum
 **KQL Used (MDE Advanced Hunting):**  
 ```
 DeviceProcessEvents  
-| where DeviceName == "azuki-adminpc"  
-| where InitiatingProcessRemoteSessionIP == "10.1.0.204"  
+| where DeviceName == "azuki-adminpc"   
 | where InitiatingProcessAccountName == "yuki.tanaka"  
 | where ProcessCommandLine has @"C:\Users\yuki.tanaka\Documents\"  
 | where FileName in ("Robocopy.exe","xcopy.exe","cmd.exe","powershell.exe")  
-| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessRemoteSessionIP, FileName, ProcessCommandLine  
+| project Timestamp, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine  
 | order by Timestamp desc  
 ```
 **Key observations:**
@@ -979,11 +978,10 @@ After identifying the attacker’s data staging directory, the investigation foc
 **KQL Used (MDE Advanced Hunting):**  
 ```
 DeviceProcessEvents  
-| where DeviceName == "azuki-adminpc"  
-| where InitiatingProcessRemoteSessionIP == "10.1.0.204"  
+| where DeviceName == "azuki-adminpc"   
 | where InitiatingProcessAccountName == "yuki.tanaka"  
 | where ProcessCommandLine has @"C:\Users\yuki.tanaka\Documents\"  
-| where FileName == "Robocopy.exe"  
+| where FileName in ("Robocopy.exe","xcopy.exe","cmd.exe","powershell.exe")  
 | project Timestamp, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine  
 | order by Timestamp desc  
 ```
@@ -1023,7 +1021,7 @@ After identifying automated data collection into the staging directory, the inve
 DeviceFileEvents  
 | where DeviceName == "azuki-adminpc"  
 | where FolderPath startswith @"C:\ProgramData\Microsoft\Crypto\staging"  
-| where FileName has_any (".7z",".zip",".tar",".gz")  
+| where FileName has_any (".zip",".tar")  
 | project Timestamp, DeviceName, FileName, FolderPath
 ```
 **Key observations:**
@@ -1060,9 +1058,8 @@ Process execution telemetry revealed additional outbound file download activity 
 ```
 DeviceProcessEvents  
 | where DeviceName == "azuki-adminpc"  
-| where InitiatingProcessRemoteSessionIP == "10.1.0.204"  
 | where FileName == "curl.exe"  
-| where ProcessCommandLine has "catbox"  
+| where ProcessCommandLine has "litter.catbox"  
 | project Timestamp, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine  
 | order by Timestamp desc  
 ```
@@ -1100,8 +1097,7 @@ Following the download of credential theft tooling, process execution telemetry 
 ```
 DeviceProcessEvents  
 | where DeviceName == "azuki-adminpc"  
-| where InitiatingProcessRemoteSessionIP == "10.1.0.204"  
-| where FileName in ("m.exe","mimikatz.exe")  
+| where FileName == "m.exe"  
 | project Timestamp, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine  
 | order by Timestamp desc  
 ```
@@ -1177,8 +1173,7 @@ Review of the data upload command identified an external cloud storage service b
 **KQL Used (MDE Advanced Hunting):**  
 ```
 DeviceNetworkEvents  
-| where DeviceName == "azuki-adminpc"  
-| where InitiatingProcessRemoteSessionIP == "10.1.0.204"  
+| where DeviceName == "azuki-adminpc"   
 | where RemoteUrl has "gofile"  
 | project Timestamp, DeviceName, InitiatingProcessAccountName, RemoteUrl, RemoteIP  
 | order by Timestamp desc  
@@ -1216,11 +1211,10 @@ Network telemetry correlated outbound connections to the previously identified c
 **KQL Used (MDE Advanced Hunting):**  
 ```
 DeviceNetworkEvents  
-| where DeviceName == "azuki-adminpc"  
-| where InitiatingProcessRemoteSessionIP == "10.1.0.204"  
+| where DeviceName == "azuki-adminpc"   
 | where RemoteUrl has "gofile"  
 | project Timestamp, DeviceName, InitiatingProcessAccountName, RemoteUrl, RemoteIP  
-| order by Timestamp desc  
+| order by Timestamp desc 
 ```
 **Key observations:**
 - Exfiltration server IP identified: `45.112.123.227`
