@@ -201,72 +201,6 @@ No single data point was accepted in isolation. Findings were validated by corre
 This approach reduced false assumptions and ensured that each conclusion was supported by **multiple, independent telemetry sources**.
 
 
-### Documentation Discipline
-Throughout the investigation:
-
-- Queries were named descriptively and saved
-- Key timestamps were noted for timeline reconstruction
-- Commands were captured verbatim for IR reporting
-- Indicators of compromise were documented for remediation
-
-The result is an investigation that is **reproducible**, **defensible**, and suitable for both operational response and post-incident reporting.
-
----
-
-##  Attack Chain Overview
-
-This section provides a high-level view of the attacker’s progression during the **Bridge Takeover** incident. Rather than focusing on individual commands or indicators, it illustrates **how discrete actions combined into a cohesive intrusion**, moving from access to impact.
-
-The attacker leveraged **existing trust, native tooling, and legitimate services** to avoid detection, prioritizing stealth and reliability over noisy exploitation.
-
-### Kill Chain Progression (Summary)
-
-1. **Lateral Movement**  
-   Pivoted from a previously compromised system into an executive administrative workstation using valid credentials.
-
-2. **Execution**  
-   Downloaded and extracted malicious tooling using native command-line utilities and rotated external infrastructure.
-
-3. **Persistence**  
-   Established redundant access through a C2 implant, named pipe communication, and a backdoor administrator account.
-
-4. **Discovery**  
-   Enumerated sessions, domain trusts, network connections, and credential storage locations to identify high-value targets.
-
-5. **Collection**  
-   Staged sensitive business and credential data in a hidden system directory and prepared it for exfiltration.
-
-6. **Exfiltration**  
-   Uploaded archived data to anonymous cloud file-sharing services over HTTPS.
-
-7. **Credential Access**  
-   Extracted browser credentials and password manager secrets, enabling long-term compromise beyond the initial environment.
-
-
-###  Kill Chain Diagram
-
-``` mermaid
-flowchart LR
-    A[Existing Foothold<br/>from prior breach] --> B[Lateral Movement<br/>Valid Accounts]
-    B --> C[Execution<br/>Payload Download & Extraction]
-    C --> D[Persistence<br/>C2 + Backdoor Account]
-    D --> E[Discovery<br/>Sessions, Trusts, Network, Files]
-    E --> F[Collection<br/>Data Staging & Archiving]
-    F --> G[Exfiltration<br/>Cloud File Uploads]
-    G --> H[Credential Access<br/>Browser & Password Manager]
-
-```
-
-### Key Observations
-
-- No exploits were required — the attack relied entirely on **trust abuse and legitimate tooling**
-- Each stage **enabled the next**, demonstrating deliberate planning
-- The attack only became clearly malicious **late in the chain**, after persistence and discovery were complete
-
-This progression highlights why early detection of **credential misuse, encoded commands, and anomalous administrative behavior** is critical to preventing business-impacting incidents.
-
----
-
 ##  Detailed Findings — Flag-by-Flag Analysis
 
 The following sections document the investigation findings **in the order they were uncovered**, corresponding directly to each flag in the *Bridge Takeover* challenge.
@@ -287,8 +221,7 @@ Each flag analysis follows a consistent structure:
 
 - **Objective** — What the flag was designed to identify  
 - **Evidence Observed** — Key telemetry or artifacts used  
-- **Analysis** — How the evidence was interpreted  
-- **MITRE ATT&CK Mapping** — Relevant tactics and techniques  
+- **Analysis** — How the evidence was interpreted    
 
 This approach mirrors professional SOC and DFIR reporting standards, ensuring the investigation is **reproducible, defensible, and operationally useful**.
 
@@ -327,10 +260,6 @@ Identifying the source system was critical for:
 - Guiding subsequent pivots into credential usage and target identification
 
 
-**MITRE ATT&CK Mapping**
-- Tactic: Lateral Movement
-- Technique: T1078 — Valid Accounts
-
 **Evidence Screenshot**
 <" />
 
@@ -367,10 +296,6 @@ The reuse of valid credentials indicates:
 - Increased risk of undetected movement
 - Potential exposure of additional systems accessible by this account
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Lateral Movement  
-- **Technique:** T1078 — Valid Accounts
-
 **Evidence Screenshot**
 <img width="1104" height="555" alt="image" src="https://github.com/user-attachments/assets/07917867-e406-4d35-8db5-689c3b224046" />
 
@@ -406,10 +331,6 @@ The device `azuki-adminpc` was identified as the primary destination for lateral
 Successful access to this device represented a significant escalation in attacker capability. By pivoting into an administrative workstation, the attacker gained visibility into sensitive business data and the ability to perform privileged actions without immediately raising suspicion.
 
 This finding confirms that the attacker’s objective extended beyond persistence and into **control of trusted systems** within the organization.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Lateral Movement  
-- **Technique:** T1078 — Valid Accounts
 
 **Evidence Screenshot**  
 <img width="1104" height="555" alt="image" src="https://github.com/user-attachments/assets/07917867-e406-4d35-8db5-689c3b224046" />
@@ -449,10 +370,6 @@ Identifying the payload hosting service provides defenders with an actionable in
 - Retrospective threat hunting
 - Detection engineering improvements
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Execution  
-- **Technique:** T1608.001 — Stage Capabilities: Upload Malware
-
 **Evidence Screenshot**  
 <img width="1565" height="137" alt="image" src="https://github.com/user-attachments/assets/e595bc5d-5bbd-42a6-9cf0-641ecf0cc9e7" />
 
@@ -489,10 +406,6 @@ Using native tooling for payload retrieval allowed the attacker to blend malicio
 
 This command represents the transition from access to **active execution**, marking a critical escalation in the intrusion.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Execution  
-- **Technique:** T1105 — Ingress Tool Transfer
-
 **Evidence Screenshot**  
 <img width="1565" height="137" alt="image" src="https://github.com/user-attachments/assets/e595bc5d-5bbd-42a6-9cf0-641ecf0cc9e7" />
 
@@ -528,10 +441,6 @@ By extracting the archive into the same cache directory used for staging, the at
 
 This step completed the delivery phase and enabled subsequent execution of attacker-controlled payloads.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Execution  
-- **Technique:** T1140 — Deobfuscate/Decode Files
-
 **Evidence Screenshot**  
 <img width="1081" height="133" alt="image" src="https://github.com/user-attachments/assets/84c17ed6-6c74-4049-b51c-6e8b274be8b7" />
 
@@ -565,10 +474,6 @@ The executable `meterpreter.exe` was identified as the attacker’s command-and-
 Placing the implant within an existing cache directory allowed the attacker to blend malicious artifacts with previously staged files, reducing the likelihood of detection through anomalous directory creation or path usage.
 
 The deployment of a dedicated C2 implant marked a shift from initial execution to **persistent control**, enabling the attacker to execute commands, deploy additional tooling, and maintain long-term access.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Persistence  
-- **Technique:** T1059 — Command and Scripting Interpreter
 
 **Evidence Screenshot**  
 <img width="1370" height="151" alt="image" src="https://github.com/user-attachments/assets/094b9341-6e33-4918-8e79-6692a78ceb7b" />
@@ -606,10 +511,6 @@ Identifying the named pipe provides a valuable artifact for:
 - Retrospective hunting
 - Incident scoping
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Command and Control  
-- **Technique:** T1090.001 — Internal Proxy
-
 **Evidence Screenshot**  
 <img width="1365" height="354" alt="image" src="https://github.com/user-attachments/assets/dc1cf421-7892-47d5-a846-c37041011ff5" />
 
@@ -646,10 +547,6 @@ This command created a new local user account with a strong, attacker-controlled
 
 Creating a new account provided the attacker with an **alternative access mechanism** independent of the original compromised credentials, increasing resilience against containment actions such as password resets.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Credential Access  
-- **Technique:** T1027 — Obfuscated Files or Information
-
 **Evidence Screenshot**  
 <img width="1260" height="115" alt="image" src="https://github.com/user-attachments/assets/6e8d04d8-5ca1-4e32-91ed-3d3dd78a48ea" />
 
@@ -683,10 +580,6 @@ The account `yuki.tanaka2` was identified as a backdoor account created by the a
 Backdoor accounts provide attackers with a **durable persistence mechanism**, allowing re-entry even if implants are removed or original credentials are reset. This technique is especially effective in environments with limited account auditing or alerting on local user creation.
 
 The presence of this account significantly increased the attacker’s ability to maintain long-term access to the compromised system.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Persistence  
-- **Technique:** T1136.001 — Create Account: Local Account
 
 **Evidence Screenshot**  
 <img width="1260" height="115" alt="image" src="https://github.com/user-attachments/assets/6e8d04d8-5ca1-4e32-91ed-3d3dd78a48ea" />
@@ -728,10 +621,6 @@ This step completed a layered persistence strategy:
 - Backdoor account for redundancy
 - Administrative privileges for unrestricted control
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Persistence  
-- **Technique:** T1078.003 — Valid Accounts: Local Accounts
-
 **Evidence Screenshot**  
 <img width="1396" height="138" alt="image" src="https://github.com/user-attachments/assets/b35bb587-c766-41b0-a1bb-5d5e4c733bd1" />
 
@@ -763,10 +652,6 @@ The attacker executed the `qwinsta` command to enumerate active Remote Desktop s
 Session enumeration is often performed after persistence is secured, allowing the attacker to operate more confidently while minimizing the risk of detection.
 
 This behavior demonstrates a methodical approach to situational awareness prior to further discovery and data access.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Discovery  
-- **Technique:** T1033 — System Owner/User Discovery
 
 **Evidence Screenshot**  
 <img width="363" height="123" alt="image" src="https://github.com/user-attachments/assets/4d73783e-8665-4435-94a1-6cb8134d0365" />
@@ -800,10 +685,6 @@ The attacker executed `nltest /domain_trusts /all_trusts` to enumerate trust rel
 By enumerating all trust types, including transitive trusts, the attacker demonstrated intent to understand the broader organizational landscape rather than limiting activity to a single domain.
 
 This behavior aligns with deliberate reconnaissance aimed at identifying expansion opportunities and assessing the full potential impact of the compromise.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Discovery  
-- **Technique:** T1482 — Domain Trust Discovery
 
 **Evidence Screenshot**  
 <img width="436" height="340" alt="image" src="https://github.com/user-attachments/assets/f881e608-3bfa-4824-8a8c-2ea594e44e6c" />
@@ -843,10 +724,6 @@ This information can be used to identify:
 
 Network enumeration at this stage reflects a methodical effort to build situational awareness before proceeding to data discovery and collection.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Discovery  
-- **Technique:** T1049 — System Network Connections Discovery
-
 **Evidence Screenshot**  
 <img width="376" height="149" alt="Screenshot 2025-12-19 163759" src="https://github.com/user-attachments/assets/508c311a-48e4-417d-9d0f-58c03e639e60" />
 
@@ -882,10 +759,6 @@ By searching specifically for `.kdbx` files, the attacker demonstrated awareness
 
 This activity represents a transition from environmental discovery to **credential-focused reconnaissance**, directly setting the stage for subsequent credential theft.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Discovery  
-- **Technique:** T1552.001 — Credentials in Files
-
 **Evidence Screenshot**  
 <img width="1391" height="158" alt="Screenshot 2025-12-19 164441" src="https://github.com/user-attachments/assets/40c63662-27a0-4884-a092-21a2d2007d26" />
 
@@ -920,10 +793,6 @@ Plaintext password files commonly contain reused, legacy, or high-privilege cred
 
 This behavior significantly increased the potential impact of the compromise and highlights the ongoing risk posed by insecure credential storage practices.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Discovery  
-- **Technique:** T1552.001 — Credentials in Files
-
 **Evidence Screenshot**  
 <img width="582" height="188" alt="image" src="https://github.com/user-attachments/assets/09edfa20-a39d-4ac3-ad91-869b3a705561" />
 
@@ -957,10 +826,6 @@ DeviceProcessEvents
 The directory `C:\ProgramData\Microsoft\Crypto\staging` was identified as the attacker’s centralized data staging location. By selecting a path that mimics legitimate Windows cryptographic service directories, the attacker reduced the likelihood of detection during routine inspection or automated monitoring.
 
 This directory served as the aggregation point for sensitive data copied from the user’s Documents directory, confirming its role as a preparatory step prior to archiving and exfiltration. Identifying this staging location was critical for scoping the volume of collected data and correlating subsequent archive creation and outbound transfer activity.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Collection  
-- **Technique:** T1074.001 — Data Staged: Local Data Staging
 
 **Evidence Screenshot**  
 <img width="1623" height="165" alt="image" src="https://github.com/user-attachments/assets/b7a782c0-6aa2-404f-bc4e-ccf200825576" />
@@ -999,10 +864,6 @@ The use of reliability-focused flags (`/E`, `/R:1`, `/W:1`, `/NP`) suggests the 
 
 This step confirms the attacker’s transition from discovery into **systematic data collection**, preparing the environment for subsequent archiving and exfiltration.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Collection  
-- **Technique:** T1119 — Automated Collection
-
 **Evidence Screenshot**  
 <img width="1623" height="165" alt="image" src="https://github.com/user-attachments/assets/b7a782c0-6aa2-404f-bc4e-ccf200825576" />
 
@@ -1037,10 +898,6 @@ The timing of archive creation, following structured data collection and staging
 
 Quantifying archive volume provides defenders with a measurable indicator of impact and helps prioritize response actions related to data exposure and notification requirements.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Collection  
-- **Technique:** T1560.001 — Archive Collected Data
-
 **Evidence Screenshot**  
 <img width="1096" height="277" alt="image" src="https://github.com/user-attachments/assets/199d9073-301b-490c-9db5-6bd5b5500382" />
 
@@ -1067,7 +924,6 @@ DeviceProcessEvents
 - Download utility used: `curl.exe`
 - Archive downloaded: `m-temp.7z`
 - Hosting service reused: `litter.catbox.moe`
-- Download occurred after data staging and archive creation
 
 **Analysis**  
 The attacker used `curl.exe`, a legitimate Windows command-line utility, to download an additional archive containing credential theft tooling. By reusing the same external hosting service observed earlier in the execution phase, the attacker demonstrated infrastructure reuse to maintain operational efficiency.
@@ -1075,10 +931,6 @@ The attacker used `curl.exe`, a legitimate Windows command-line utility, to down
 The decision to download credential theft tooling after completing data collection suggests the attacker sought to **expand long-term access** by harvesting additional credentials, rather than relying solely on previously discovered plaintext files or password databases.
 
 This activity marks a transition from data-focused objectives to **credential-centric post-exploitation**, increasing the potential downstream impact of the intrusion.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Credential Access  
-- **Technique:** T1105 — Ingress Tool Transfer
 
 **Evidence Screenshot**  
 <img width="558" height="144" alt="image" src="https://github.com/user-attachments/assets/4bc8689c-00df-4409-bf67-1510cb738f2b" />
@@ -1103,7 +955,6 @@ DeviceProcessEvents
 ```
 **Key observations:**
 - Credential theft tool executed: `m.exe`
-- DPAPI module targeted Chrome credential storage
 - Input file referenced Chrome `Login Data` database
 - Execution occurred after credential theft tooling was downloaded
 
@@ -1113,10 +964,6 @@ The attacker executed the credential theft tool with the `dpapi::chrome` module 
 Targeting browser credential stores allowed the attacker to harvest credentials for web applications, cloud services, and internal portals, significantly expanding the potential impact of the compromise.
 
 This behavior demonstrates a deliberate focus on **credential longevity**, enabling access persistence beyond the compromised host itself.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Credential Access  
-- **Technique:** T1555.003 — Credentials from Web Browsers
 
 **Evidence Screenshot (Placeholder)**  
 <img width="931" height="157" alt="image" src="https://github.com/user-attachments/assets/927c31be-66e1-4d19-b5d9-cae1be012466" />
@@ -1153,10 +1000,6 @@ By leveraging HTTPS-based uploads to a legitimate file hosting service, the atta
 
 This activity marks the transition from internal data handling to **active data exfiltration**, representing a critical point of business impact.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Exfiltration  
-- **Technique:** T1567 — Exfiltration Over Web Service
-
 **Evidence Screenshot**  
 <img width="1220" height="258" alt="image" src="https://github.com/user-attachments/assets/ec7426cb-fb90-427a-8f8a-15dd1b46d86e" />
 
@@ -1191,10 +1034,6 @@ Using a legitimate cloud storage provider allowed the attacker to blend exfiltra
 
 Identifying the exfiltration service provides defenders with a clear opportunity for domain-based blocking, retrospective traffic analysis, and threat intelligence correlation.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Exfiltration  
-- **Technique:** T1567.002 — Exfiltration to Cloud Storage
-
 **Evidence Screenshot**  
 <img width="314" height="146" alt="image" src="https://github.com/user-attachments/assets/3ff8b963-420d-418c-b796-edf695f9dcce" />
 
@@ -1227,10 +1066,6 @@ The IP address `45.112.123.227` was identified as the backend server receiving e
 
 IP-level indicators are particularly valuable in environments where DNS-based blocking is unavailable, delayed, or circumvented. This finding enables defenders to perform retrospective traffic analysis and implement temporary containment measures during active response.
 
-**MITRE ATT&CK Mapping**
-- **Tactic:** Exfiltration  
-- **Technique:** T1041 — Exfiltration Over C2 Channel
-
 **Evidence Screenshot**  
 <img width="314" height="146" alt="image" src="https://github.com/user-attachments/assets/3ff8b963-420d-418c-b796-edf695f9dcce" />
 
@@ -1248,10 +1083,9 @@ File system telemetry revealed access to a plaintext file containing a password 
 ```
 DeviceFileEvents  
 | where DeviceName == "azuki-adminpc"  
-| where FileName has "KeePass"  
 | where FileName contains "txt" 
 | project Timestamp, DeviceName, ActionType, FileName, FolderPath  
-| order by Timestamp desc  
+| order by Timestamp desc 
 ```
 **Key observations:**
 - Credential file identified: `KeePass-Master-Password.txt`
@@ -1265,10 +1099,6 @@ The file `KeePass-Master-Password.txt` was identified as containing the master p
 This represents the **highest-impact credential access event** in the intrusion. Unlike individual browser passwords, a KeePass master password can unlock credentials for numerous internal systems, external services, and privileged accounts.
 
 The recovery of this artifact confirms that the attacker achieved comprehensive credential compromise, extending the potential impact of the incident well beyond the initially compromised host.
-
-**MITRE ATT&CK Mapping**
-- **Tactic:** Credential Access  
-- **Technique:** T1555.005 — Credentials from Password Stores
 
 **Evidence Screenshot**  
 <img width="614" height="146" alt="image" src="https://github.com/user-attachments/assets/f9272777-4699-4639-9e7b-c315f535f043" />
