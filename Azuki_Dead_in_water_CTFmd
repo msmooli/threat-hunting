@@ -30,9 +30,6 @@ This report documents a full ransomware intrusion lifecycle against Azuki Import
 
 ## Steps Taken
 
-```kql
-let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticspc","azuki-backup"]);
-```
 
 ---
 
@@ -51,14 +48,16 @@ let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticsp
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where FileName in~ ("ssh","ssh.exe")
-| where ProcessCommandLine has "@10.1.0.189" // target backup server
+| where DeviceName contains "azuki"
+| where FileName contains "ssh"
+| where ProcessCommandLine has "10.1.0.189"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="909" height="228" alt="Screenshot 2026-01-21 at 11 37 43 AM" src="https://github.com/user-attachments/assets/3e5c2493-7470-4f13-94f0-bb7712d06391" />
+
 
 ### FLAG 2 – Attack Source IP
 **Finding:** SSH access originated from a compromised internal workstation.
@@ -73,13 +72,15 @@ DeviceProcessEvents
 **KQL:**
 ```kql
 DeviceNetworkEvents
-| where DeviceName in~ (AzukiDevices)
-| where RemoteIP == "10.1.0.189" and RemotePort == 22
+| where DeviceName contains "azuki"
+| where RemoteIP == "10.1.0.189" 
 | project TimeGenerated, DeviceName, LocalIP, RemoteIP, InitiatingProcessFileName, InitiatingProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="1439" height="232" alt="Screenshot 2026-01-21 at 11 40 39 AM" src="https://github.com/user-attachments/assets/fb525a1d-5dc4-40b3-bd9b-04452ba8dc18" />
+
 
 ### FLAG 3 – Compromised Account
 **Finding:** A privileged backup account was abused.
@@ -94,13 +95,15 @@ backup-admin
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where AccountName == "backup-admin" or ProcessCommandLine has "backup-admin"
+| where DeviceName contains "azuki"
+| where AccountName == "backup-admin"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="819" height="142" alt="Screenshot 2026-01-21 at 11 53 55 AM" src="https://github.com/user-attachments/assets/6d4b874b-7ae8-45bc-bf9c-02355a7ceacc" />
+
 
 ### FLAG 4 – Directory Enumeration
 **Finding:** Attackers enumerated backup directory contents to identify targets.
@@ -115,15 +118,16 @@ ls --color=auto -la /backups/
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
+| where DeviceName contains "azuki"
 | where AccountName == "backup-admin"
 | where FileName == "ls"
-| where ProcessCommandLine == "ls --color=auto -la /backups/"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="775" height="143" alt="Screenshot 2026-01-21 at 11 56 50 AM" src="https://github.com/user-attachments/assets/115972cb-1d21-4e25-a25a-212ad5d55c51" />
+
 
 ### FLAG 5 – File Search
 **Finding:** Attackers searched for compressed backup archives to prioritize high-value targets for destruction/exfil.
@@ -138,14 +142,16 @@ find /backups -name *.tar.gz
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
+| where DeviceName contains "azuki"
 | where AccountName == "backup-admin"
-| where ProcessCommandLine startswith "find /backups" and ProcessCommandLine has ".tar.gz"
+| where ProcessCommandLine contains "find"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="1087" height="171" alt="Screenshot 2026-01-21 at 12 00 15 PM" src="https://github.com/user-attachments/assets/748a00fc-30e2-4342-b291-cf3a281651a7" />
+
 
 ### FLAG 6 – Local Account Enumeration
 **Finding:** The attacker enumerated local Linux user accounts to understand the system’s user base and potential privilege boundaries.
@@ -227,14 +233,16 @@ cat /backups/configs/all-credentials.txt
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
+| where DeviceName contains "azuki"
 | where AccountName == "backup-admin"
-| where ProcessCommandLine == "cat /backups/configs/all-credentials.txt"
+| where ProcessCommandLine contains "credentials"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="1111" height="164" alt="Screenshot 2026-01-21 at 12 14 47 PM" src="https://github.com/user-attachments/assets/76b99476-aaa1-4f3b-823c-9c263ebca9dc" />
+
 
 ### FLAG 10 – Backup Destruction
 **Finding:** Backup data was deleted to eliminate recovery options before Windows ransomware deployment.
@@ -318,35 +326,37 @@ PsExec64.exe
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where FileName =~ "PsExec64.exe" or ProcessCommandLine has "PsExec64.exe"
+| where DeviceName contains "azuki"
+| where FileName == "PsExec64.exe"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="1157" height="144" alt="image" src="https://github.com/user-attachments/assets/289f4c1a-c522-4195-8909-eb047cd1e868" />
+
 
 ### FLAG 14 – Deployment Command
 **Finding:** The attacker used PsExec to copy and execute the ransomware payload on remote systems.
 
 **Command (password redacted):**
 ```
-"PsExec64.exe" \10.1.0.102 -u kenji.sato -p ********** -c -f C:\Windows\Temp\cache\silentlynx.exe
-```
+"PsExec64.exe" \\10.1.0.188 -u fileadmin -p ********** -c -f C:\Windows\Temp\cache\silentlynx.exe```
 
 **MITRE:** T1021.002 – SMB / Windows Admin Shares
 
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where FileName =~ "PsExec64.exe" or ProcessCommandLine has "PsExec64.exe"
-| where ProcessCommandLine has "\\10.1.0.102" and ProcessCommandLine has "silentlynx.exe"
+| where DeviceName contains "azuki"
+| where FileName == "PsExec64.exe"
+| where ProcessCommandLine has "silentlynx.exe"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="920" height="144" alt="image" src="https://github.com/user-attachments/assets/b33dbf68-7586-482a-84e6-a16bdd7dd800" />
 
 ### FLAG 15 – Malicious Payload
 **Finding:** The ransomware binary name was identified for environment-wide hunting.
@@ -361,13 +371,16 @@ silentlynx.exe
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where FileName =~ "silentlynx.exe" or ProcessCommandLine has "silentlynx.exe"
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName
+| where DeviceName contains "azuki"
+| where FileName == "silentlynx.exe"
+| where ProcessCommandLine has "silentlynx.exe"
+| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="457" height="143" alt="image" src="https://github.com/user-attachments/assets/6c6f4814-7927-4008-ac48-7d67bd129b67" />
+
 
 ## PHASE 3 – Recovery Inhibition (FLAGS 16–22)
 
@@ -384,13 +397,15 @@ DeviceProcessEvents
 **KQL:****
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where ProcessCommandLine == '"net" stop VSS /y'
+| where DeviceName contains "azuki"
+| where ProcessCommandLine has "stop"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="454" height="143" alt="image" src="https://github.com/user-attachments/assets/776ad3c6-c26c-45f2-affc-c7bfc5baaa6f" />
+
 
 ### FLAG 17 – Backup Engine Stopped
 **Finding:** Windows Backup Engine was stopped to halt backup operations and dependent services.
@@ -404,23 +419,16 @@ DeviceProcessEvents
 
 **KQL (tight + time pivot around payload):**
 ```kql
-let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticspc","azuki-backup"]);
-let AnchorTime = toscalar(
-    DeviceProcessEvents
-    | where DeviceName in~ (AzukiDevices)
-    | where ProcessCommandLine has "silentlynx.exe"
-    | summarize max(TimeGenerated)
-);
-let Win = 45m;
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where TimeGenerated between (AnchorTime-Win .. AnchorTime+Win)
-| where ProcessCommandLine == '"net" stop wbengine /y'
+| where DeviceName contains "azuki"
+| where ProcessCommandLine contains "engine"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="468" height="143" alt="image" src="https://github.com/user-attachments/assets/d8d3b8b6-9c2e-405b-8bc6-ba7f278cd81f" />
+
 
 ### FLAG 18 – Process Termination (Unlock Files)
 **Finding:** Database services were forcefully terminated to release file locks prior to encryption.
@@ -434,16 +442,16 @@ DeviceProcessEvents
 
 **KQL:****
 ```kql
-let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticspc","azuki-backup"]);
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where ProcessCommandLine == '"taskkill" /F /IM sqlservr.exe'
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine,
-          InitiatingProcessFileName, InitiatingProcessCommandLine
+| where DeviceName contains "azuki"
+| where ProcessCommandLine contains "taskkill"
+| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="558" height="145" alt="image" src="https://github.com/user-attachments/assets/d23c00d7-7413-40a0-9524-b22766ddc817" />
+
 
 ### FLAG 19 – Recovery Point Deletion
 **Finding:** All existing shadow copies were deleted to remove local restore points.
@@ -457,15 +465,16 @@ DeviceProcessEvents
 
 **KQL:****
 ```kql
-let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticspc","azuki-backup"]);
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where ProcessCommandLine == '"vssadmin" delete shadows /all /quiet'
+| where DeviceName contains "azuki"
+| where ProcessCommandLine contains "delete shadows"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="481" height="142" alt="image" src="https://github.com/user-attachments/assets/9f3d1f19-7774-4f7e-bbe8-e86afa37e3e6" />
+
 
 ### FLAG 20 – Storage Limitation
 **Finding:** Shadow storage was resized to prevent creation of new recovery points.
@@ -479,15 +488,16 @@ DeviceProcessEvents
 
 **KQL (tight + command equality):**
 ```kql
-let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticspc","azuki-backup"]);
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where ProcessCommandLine == '"vssadmin" resize shadowstorage /for=C: /on=C: /maxsize=401MB'
+| where DeviceName contains "azuki"
+| where ProcessCommandLine contains "resize shadowstorage"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
+
 ```
 
 ---
+<img width="617" height="144" alt="image" src="https://github.com/user-attachments/assets/568b9a9d-0693-447e-8469-2815014ea125" />
 
 ### FLAG 21 – Recovery Disabled
 **Finding:** Windows recovery features were disabled to block automatic repair after system corruption.
@@ -501,16 +511,15 @@ DeviceProcessEvents
 
 **KQL:****
 ```kql
-let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticspc","azuki-backup"]);
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where FileName in~ ("bcdedit.exe","cmd.exe")
-| where ProcessCommandLine == '"bcdedit" /set {default} recoveryenabled No'
+| where DeviceName contains "azuki"
+| where ProcessCommandLine contains "bcdedit"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="525" height="146" alt="image" src="https://github.com/user-attachments/assets/e469196d-7a27-442f-b19b-5fa27df6df84" />
 
 ### FLAG 22 – Catalog Deletion
 **Finding:** The Windows Backup catalog was deleted, making backups undiscoverable even if files remained.
@@ -524,19 +533,15 @@ DeviceProcessEvents
 
 **KQL:****
 ```kql
-let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticspc","azuki-backup"]);
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where FileName in~ ("wbadmin.exe","cmd.exe")
-| where ProcessCommandLine == '"wbadmin" delete catalog -quiet'
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine,
-          InitiatingProcessFileName, InitiatingProcessCommandLine
+| where DeviceName contains "azuki"
+| where ProcessCommandLine contains "wbadmin"
+| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
 
-
-
 ---
+<img width="578" height="145" alt="image" src="https://github.com/user-attachments/assets/e3d5b37a-198c-431e-a080-f50d61eb5a5d" />
 
 ## PHASE 4 – Persistence (FLAGS 23–24)
 
@@ -552,21 +557,17 @@ WindowsSecurityHealth
 
 **KQL (tight: only Run/RunOnce + value name):**
 ```kql
-let AzukiDevices = dynamic(["azuki-adminpc","azuki-fileserver","azuki-logisticspc","azuki-backup"]);
 DeviceRegistryEvents
-| where DeviceName in~ (AzukiDevices)
-| where ActionType == "RegistryValueSet"
-| where RegistryKey has_any (
-    "\Software\Microsoft\Windows\CurrentVersion\Run",
-    "\Software\Microsoft\Windows\CurrentVersion\RunOnce"
-)
-| where RegistryValueName == "WindowsSecurityHealth"
+| where DeviceName contains "azuki"
+| where RegistryKey has "run"
+| where InitiatingProcessFileName == "silentlynx.exe"
 | project TimeGenerated, DeviceName, RegistryKey, RegistryValueName, RegistryValueData,
           InitiatingProcessFileName, InitiatingProcessCommandLine
 | order by TimeGenerated asc
 ```
 
 ---
+<img width="1009" height="203" alt="image" src="https://github.com/user-attachments/assets/7b39aeb7-81a8-4d6e-b93b-7177ab843b89" />
 
 ### FLAG 24 – Scheduled Task Persistence
 **Finding:** A scheduled task was created to ensure the ransomware (or helper component) re-executes reliably.
@@ -581,25 +582,14 @@ DeviceRegistryEvents
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where FileName =~ "schtasks.exe" or ProcessCommandLine has "schtasks"
-| where ProcessCommandLine has_any ("/create","/Create")
-| where ProcessCommandLine has "SecurityHealthService"
+| where DeviceName contains "azuki"
+| where InitiatingProcessFileName == "silentlynx.exe"
+| where ProcessCommandLine has "create"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
-
-**KQL (registry pivot confirming the full task path):**
-```kql
-DeviceRegistryEvents
-| where DeviceName in~ (AzukiDevices)
-| where RegistryKey has "\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree"
-| where RegistryKey has "\Microsoft\Windows\Security\SecurityHealthService"
-| project TimeGenerated, DeviceName, ActionType, RegistryKey, InitiatingProcessFileName, InitiatingProcessCommandLine
-| order by TimeGenerated asc
-```
-
 ---
+<img width="1019" height="145" alt="image" src="https://github.com/user-attachments/assets/853f159a-a55b-4149-9e66-1f6b7286bfc9" />
 
 ## PHASE 5 – Anti‑Forensics (FLAG 25)
 
@@ -616,12 +606,11 @@ DeviceRegistryEvents
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where ProcessCommandLine has_all ("fsutil","usn","deletejournal")
+| where DeviceName contains "azuki"
+| where ProcessCommandLine has "deletejournal"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
-
 ---
 
 ## PHASE 6 – Ransomware Success (FLAG 26)
