@@ -10,17 +10,8 @@
 
 ---
 
-## Scenario
-
- The report for **_Dead in the Water – Azuki Import/Export_** reflects an intentional reduction in depth and presentation compared to previous threat hunt reports. This scoping decision was made to prioritize timely identification of actionable findings, preserve investigative momentum, and support transition to subsequent investigative phases.  
- 
-This report emphasizes key indicators, pivotal observations, and response-relevant conclusions rather than extended narrative development, exhaustive correlation, or full artifact documentation. The core analytical rigor remains intact, and the findings captured here directly informed containment considerations and follow-on investigative planning.  
-
-
----
-
-##  Overview
-This report documents a full ransomware intrusion lifecycle against Azuki Import/Export, from backup infrastructure compromise through ransomware deployment, recovery inhibition, persistence, and anti‑forensics. Each section corresponds to a validated CTF flag and includes:
+##  Scenario
+The Dead in the Water – Azuki Import/Export report documents a full ransomware intrusion lifecycle, from backup infrastructure compromise through ransomware deployment, recovery inhibition, persistence, and anti-forensic activity. It was intentionally kept concise to quickly surface the most important findings and maintain investigative momentum, focusing on key indicators, observations, and response-relevant conclusions rather than excessive detail. The findings directly informed containment actions and guided the next phase of the investigation. Each section corresponds to a validated CTF flag and includes:
 - **What happened (finding)**
 - **Why it matters (impact)**
 - **MITRE ATT&CK mapping**
@@ -28,8 +19,11 @@ This report documents a full ransomware intrusion lifecycle against Azuki Import
 
 ---
 
-## Steps Taken
-
+High-Level Inidcators of Compromise (IoC) Discovery Plan
+Check DeviceFileEvents for any .exe file events.
+Check DeviceProcessEvents for any signs of installation or usage.
+Check DeviceNetworkEvents for any signs of IP connections inbound/outbound or port usage.
+Check DeviceRegistryEvents for any signs of registry key creations, modifications, and deletions.
 
 ---
 
@@ -172,6 +166,8 @@ DeviceProcessEvents
 | order by TimeGenerated asc
 ```
 ---
+<img width="606" height="117" alt="image" src="https://github.com/user-attachments/assets/526a83b1-a5c2-4a81-8bb8-ac0250c373c4" />
+
 
 ### FLAG 7 – Scheduled Job Reconnaissance
 **Finding:** The attacker inspected cron scheduling to identify backup routines and timing.
@@ -193,6 +189,8 @@ DeviceProcessEvents
 ```
 
 ---
+<img width="633" height="115" alt="image" src="https://github.com/user-attachments/assets/c6663ee4-4fbc-421c-b484-7bc1f9aeb96e" />
+
 
 ### FLAG 8 – Tool Transfer
 **Finding:** The attacker pulled an external archive containing destructive tooling.
@@ -213,6 +211,7 @@ DeviceProcessEvents
 | order by TimeGenerated asc
 ```
 ---
+<img width="638" height="145" alt="image" src="https://github.com/user-attachments/assets/bceea745-979b-476a-bc7a-376b29b484d9" />
 
 ### FLAG 9 – Credential Theft
 **Finding:** Plaintext credentials were accessed from backup configuration artifacts.
@@ -243,8 +242,7 @@ DeviceProcessEvents
 
 **Command (first directory path sufficient per flag instructions):**
 ```
-rm -rf /backups/archives /backups/azuki-adminpc ...
-```
+ rm -rf /backups/archives /backups/azuki-adminpc /backups/azuki-fileserver /backups/azuki-logisticspc /backups/config-backups /backups/configs /backups/daily /backups/database-backups /backups/databases /backups/fileserver /backups/logs /backups/monthly /backups/weekly /backups/workstations```
 
 **MITRE:** T1485 – Data Destruction
 
@@ -257,6 +255,8 @@ DeviceProcessEvents
 | order by TimeGenerated asc
 ```
 ---
+<img width="1000" height="159" alt="image" src="https://github.com/user-attachments/assets/2ada54f3-6923-462e-b276-8b4b1cb39e31" />
+
 
 ### FLAG 11 – Backup Service Stopped
 **Finding:** The attacker stopped cron to immediately halt scheduled jobs (non-persistent).
@@ -276,8 +276,8 @@ DeviceProcessEvents
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
-
 ---
+<img width="661" height="144" alt="image" src="https://github.com/user-attachments/assets/e62e5dfa-798d-427a-8635-c8a5140e0993" />
 
 ### FLAG 12 – Backup Service Disabled
 **Finding:** The attacker disabled cron to prevent scheduled jobs from starting on boot (persistent).
@@ -298,6 +298,7 @@ DeviceProcessEvents
 | order by TimeGenerated asc
 ```
 ---
+<img width="672" height="144" alt="image" src="https://github.com/user-attachments/assets/599ba84a-d635-4b15-9c29-32736ef9bf45" />
 
 ### FLAG 13 – Remote Execution Tool
 **Finding:** PsExec was used for lateral command execution over admin shares.
@@ -317,9 +318,8 @@ DeviceProcessEvents
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName
 | order by TimeGenerated asc
 ```
-
 ---
-<img width="1157" height="144" alt="image" src="https://github.com/user-attachments/assets/289f4c1a-c522-4195-8909-eb047cd1e868" />
+<img width="737" height="29" alt="image" src="https://github.com/user-attachments/assets/8341a64c-6eaa-4970-9d42-545f569db443" />
 
 
 ### FLAG 14 – Deployment Command
@@ -340,9 +340,8 @@ DeviceProcessEvents
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
-
 ---
-<img width="920" height="144" alt="image" src="https://github.com/user-attachments/assets/b33dbf68-7586-482a-84e6-a16bdd7dd800" />
+<img width="786" height="141" alt="Screenshot 2026-01-24 at 4 20 34 PM" src="https://github.com/user-attachments/assets/840bbaef-82f6-406c-aa43-b055b449ba36" />
 
 ### FLAG 15 – Malicious Payload
 **Finding:** The ransomware binary name was identified for environment-wide hunting.
@@ -598,6 +597,7 @@ DeviceProcessEvents
 | order by TimeGenerated asc
 ```
 ---
+<img width="548" height="143" alt="image" src="https://github.com/user-attachments/assets/8bf1864f-00d3-492d-915c-ab873098c88d" />
 
 ## PHASE 6 – Ransomware Success (FLAG 26)
 
@@ -620,8 +620,8 @@ DeviceFileEvents
           InitiatingProcessFileName, InitiatingProcessCommandLine
 | order by TimeGenerated asc
 ```
-
 ---
+<img width="982" height="32" alt="image" src="https://github.com/user-attachments/assets/bd8826a7-2def-4d4b-98d0-6ab7fe9de1f1" />
 
 ## Conclusion
 This incident demonstrates a **methodical, multi‑stage ransomware operation** with deliberate focus on:
