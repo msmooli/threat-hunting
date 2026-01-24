@@ -19,7 +19,7 @@ The Dead in the Water – Azuki Import/Export report documents a full ransomware
 
 ---
 
-High-Level Inidcators of Compromise (IoC) Discovery Plan
+High-Level Indicators of Compromise (IoC) Discovery Plan
 Check DeviceFileEvents for any .exe file events.
 Check DeviceProcessEvents for any signs of installation or usage.
 Check DeviceNetworkEvents for any signs of IP connections inbound/outbound or port usage.
